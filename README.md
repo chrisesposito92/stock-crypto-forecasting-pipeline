@@ -105,15 +105,19 @@ python main.py --update-only --retrain
 
 ### View Predictions
 
-View the most recent predictions for all assets:
+Predictions are automatically displayed after running `main.py` with appropriate formatting:
+- Stock prices show 2 decimal places
+- Crypto prices show 6 decimal places 
+- Only displays predictions for tickers in the current run
+- Respects the forecast horizon specified in command arguments
+
+You can also manually view predictions:
 
 ```bash
+# View all predictions with standard formatting
 python show_predictions.py
-```
 
-View future date predictions with specific dates shown:
-
-```bash
+# View predictions with dates included
 python show_future_predictions.py
 ```
 

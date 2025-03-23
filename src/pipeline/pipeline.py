@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 from datetime import datetime, timedelta
-from src.data.data_loader import StockDataLoader
+from src.data.data_loader import MarketDataLoader
 from src.data.feature_engineering import FeatureEngineer
 from src.models.model_training import ModelTrainer
 from src.models.prediction import StockPredictor
@@ -25,19 +25,22 @@ class StockForecastingPipeline:
                  start_date=None, 
                  end_date=None,
                  forecast_horizon=5,
-                 model_type='random_forest'):
+                 model_type='random_forest',
+                 asset_type='stock'):
         """
         Initialize the pipeline with configuration.
         
         Args:
-            tickers (list): List of stock ticker symbols
+            tickers (list): List of market ticker symbols
             start_date (str): Start date for historical data (YYYY-MM-DD)
             end_date (str): End date for historical data (YYYY-MM-DD)
             forecast_horizon (int): Number of days to forecast ahead
             model_type (str): Type of model to use
+            asset_type (str): Type of asset ('stock' or 'crypto')
         """
         # Set default tickers if none provided
         self.tickers = tickers or ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'META']
+        self.asset_type = asset_type
         
         # Set default date range if none provided (e.g., last 5 years)
         if start_date is None:
@@ -50,7 +53,7 @@ class StockForecastingPipeline:
         self.model_type = model_type
         
         # Initialize components
-        self.data_loader = StockDataLoader(output_dir='data/raw')
+        self.data_loader = MarketDataLoader(output_dir='data/raw')
         self.feature_engineer = FeatureEngineer(input_dir='data/raw', output_dir='data/features')
         self.model_trainer = ModelTrainer(data_dir='data/features', models_dir='models')
         self.predictor = StockPredictor(models_dir='models', output_dir='data/predictions')
@@ -59,21 +62,26 @@ class StockForecastingPipeline:
         # Create output directories
         os.makedirs('logs', exist_ok=True)
         
-        logger.info(f"Initialized pipeline with tickers: {self.tickers}")
+        logger.info(f"Initialized pipeline with {self.asset_type} tickers: {self.tickers}")
     
     def run_data_collection(self):
         """
-        Collect historical stock data.
+        Collect historical market data.
         
         Returns:
             dict: Dictionary with tickers as keys and DataFrames as values
         """
-        logger.info("Starting data collection...")
-        stock_data = self.data_loader.download_multiple_stocks(
-            self.tickers, self.start_date, self.end_date
-        )
-        logger.info(f"Collected data for {len(stock_data)} stocks")
-        return stock_data
+        logger.info(f"Starting {self.asset_type} data collection...")
+        if self.asset_type == 'stock':
+            market_data = self.data_loader.download_multiple_assets(
+                self.tickers, self.start_date, self.end_date, asset_type='stock'
+            )
+        else:  # crypto
+            market_data = self.data_loader.download_multiple_assets(
+                self.tickers, self.start_date, self.end_date, asset_type='crypto'
+            )
+        logger.info(f"Collected data for {len(market_data)} {self.asset_type} assets")
+        return market_data
     
     def run_feature_engineering(self):
         """
@@ -233,27 +241,27 @@ class StockForecastingPipeline:
     
     def update_data(self):
         """
-        Update data with the latest stock prices.
+        Update data with the latest market prices.
         
         Returns:
-            dict: Dictionary with updated stock data
+            dict: Dictionary with updated market data
         """
-        logger.info("Updating data with latest stock prices...")
+        logger.info(f"Updating data with latest {self.asset_type} prices...")
         
         # Set date range for update (last week to today)
         update_start = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
         update_end = datetime.now().strftime('%Y-%m-%d')
         
         # Download latest data
-        updated_data = self.data_loader.download_multiple_stocks(
-            self.tickers, update_start, update_end
+        updated_data = self.data_loader.download_multiple_assets(
+            self.tickers, update_start, update_end, asset_type=self.asset_type
         )
         
         # Process updated data
         for ticker in updated_data:
             self.feature_engineer.process_stock_data(ticker)
         
-        logger.info(f"Updated data for {len(updated_data)} stocks")
+        logger.info(f"Updated data for {len(updated_data)} {self.asset_type} assets")
         return updated_data
     
     def retrain_models(self):

@@ -36,7 +36,7 @@ stock-forecasting-pipeline/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/stock-forecasting-pipeline.git
+git clone https://github.com/chrisesposito92/stock-forecasting-pipeline.git
 cd stock-forecasting-pipeline
 ```
 
